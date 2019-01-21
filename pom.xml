@@ -80,6 +80,7 @@
     <module>ege-webclient</module>
     <module>ege-framework</module>
       <module>mei-xsl-converter</module>
+      <module>mei-validator</module>
   </modules>
   <build>
     <plugins>
