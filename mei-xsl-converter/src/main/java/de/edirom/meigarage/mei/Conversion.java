@@ -5,14 +5,40 @@ public enum Conversion {
     /*
       supported formats
      */
-    MUSICXMLTOMEI21(
-            "musicxmltomei21", // "id"
+    MUSICXMLTIMEWISETOMEI21(
+            "musicxmltimewisetomei21", // "id"
             "text/xml", // "mime type for target"
-            "musicxml", // "input format id"
-            "MusicXML Document (XML)", // "input description"
+            "musicxml-timewise", // "input format id"
+            "MusicXML Document (timewise)", // "input description"
             "score", // "input type" (score, audio, image, customization)
             "mei21", // "output format id"
-            "MEI 2.1 XML Document (.xml)", // "output description"
+            "MEI 2.1 XML Document", // "output description"
+            "score", // "output type" (score, audio, image, customization)
+            true, // "visible as input"
+            9 // "cost"
+    ),
+    
+    MUSICXMLPARTWISETOTIMEWISE(
+            "musicxmlpartwisetotimewise", // "id"
+            "text/xml", // "mime type for target"
+            "musicxml-partwise", // "input format id"
+            "MusicXML Document (partwise)", // "input description"
+            "score", // "input type" (score, audio, image, customization)
+            "musicxml-timewise", // "output format id"
+            "MusicXML Document (timewise)", // "output description"
+            "score", // "output type" (score, audio, image, customization)
+            true, // "visible as input"
+            9 // "cost"
+    ),
+    
+    MUSICXMLTIMEWISETOPARTWISE(
+            "musicxmltimewisetopartwise", // "id"
+            "text/xml", // "mime type for target"
+            "musicxml-timewise", // "input format id"
+            "MusicXML Document (timewise)", // "input description"
+            "score", // "input type" (score, audio, image, customization)
+            "musicxml-partwise", // "output format id"
+            "MusicXML Document (partwise)", // "output description"
             "score", // "output type" (score, audio, image, customization)
             true, // "visible as input"
             9 // "cost"
@@ -25,7 +51,33 @@ public enum Conversion {
             "MEI 2.1 XML Document", // "input description"
             "score", // "input type" (score, audio, image, customization)
             "mei30", // "output format id"
-            "MEI 3.0 XML Document (.xml)", // "output description"
+            "MEI 3.0 XML Document", // "output description"
+            "score", // "output type" (score, audio, image, customization)
+            true, // "visible as input"
+            9 // "cost"
+    ),
+    
+    MEI2010TO2012(
+            "mei2010to2012", // "id"
+            "text/xml", // "mime type for target"
+            "mei2010", // "input format id"
+            "MEI 2010 XML Document", // "input description"
+            "score", // "input type" (score, audio, image, customization)
+            "mei2012", // "output format id"
+            "MEI 2012 XML Document", // "output description"
+            "score", // "output type" (score, audio, image, customization)
+            true, // "visible as input"
+            9 // "cost"
+    ),
+
+    MEI2012TOMEI21(
+            "mei2012toMEI21", // "id"
+            "text/xml", // "mime type for target"
+            "mei2012", // "input format id"
+            "MEI 2012 XML Document", // "input description"
+            "score", // "input type" (score, audio, image, customization)
+            "mei21", // "output format id"
+            "MEI 2.1 XML Document", // "output description"
             "score", // "output type" (score, audio, image, customization)
             true, // "visible as input"
             9 // "cost"

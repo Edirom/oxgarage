@@ -124,17 +124,41 @@ public class MEIXSLConverter implements Converter,ErrorHandler {
 			SaxonApiException, ConverterException {
 
 		// from MusicXML to MEI
-		if (fromDataType.getFormat().equals(Conversion.MUSICXMLTOMEI21.getIFormatId()) &&
-				toDataType.getFormat().equals(Conversion.MUSICXMLTOMEI21.getOFormatId())) {
+		if (fromDataType.getFormat().equals(Conversion.MUSICXMLTIMEWISETOMEI21.getIFormatId()) &&
+				toDataType.getFormat().equals(Conversion.MUSICXMLTIMEWISETOMEI21.getOFormatId())) {
 
 			properties.put("extension", "xml");
-			performXsltTransformation(inputStream, outputStream, "musicxml2mei/musicxml2mei-3.0.xsl", properties);
+			performXsltTransformation(inputStream, outputStream, "encoding-tools/musicxml2mei/musicxml2mei-3.0.xsl", properties);
 
 		}else if(fromDataType.getFormat().equals(Conversion.MEI21TOMEI30.getIFormatId()) &&
 				toDataType.getFormat().equals(Conversion.MEI21TOMEI30.getOFormatId())) {
 
 			properties.put("extension", "xml");
-			performXsltTransformation(inputStream, outputStream, "mei21To30/mei21To30.xsl", properties);
+			performXsltTransformation(inputStream, outputStream, "encoding-tools/mei21To30/mei21To30.xsl", properties);
+		}
+		else if(fromDataType.getFormat().equals(Conversion.MUSICXMLPARTWISETOTIMEWISE.getIFormatId()) &&
+				toDataType.getFormat().equals(Conversion.MUSICXMLPARTWISETOTIMEWISE.getOFormatId())) {
+
+			properties.put("extension", "xml");
+			performXsltTransformation(inputStream, outputStream, "w3c-musicxml/schema/parttime.xsl", properties);
+		}
+		else if(fromDataType.getFormat().equals(Conversion.MUSICXMLTIMEWISETOPARTWISE.getIFormatId()) &&
+				toDataType.getFormat().equals(Conversion.MUSICXMLTIMEWISETOPARTWISE.getOFormatId())) {
+
+			properties.put("extension", "xml");
+			performXsltTransformation(inputStream, outputStream, "w3c-musicxml/schema/timepart.xsl", properties);
+		}
+		else if(fromDataType.getFormat().equals(Conversion.MEI2010TO2012.getIFormatId()) &&
+				toDataType.getFormat().equals(Conversion.MEI2010TO2012.getOFormatId())) {
+
+			properties.put("extension", "xml");
+			performXsltTransformation(inputStream, outputStream, "encoding-tools/mei2010To2012/mei2010To2012.xsl", properties);
+		}
+		else if(fromDataType.getFormat().equals(Conversion.MEI2012TOMEI21.getIFormatId()) &&
+				toDataType.getFormat().equals(Conversion.MEI2012TOMEI21.getOFormatId())) {
+
+			properties.put("extension", "xml");
+			performXsltTransformation(inputStream, outputStream, "encoding-tools/mei2012To2013/mei2012To2013.xsl", properties);
 		}
 	}
 
