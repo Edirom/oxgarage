@@ -79,6 +79,7 @@
     <module>ege-webservice</module>
     <module>ege-webclient</module>
     <module>ege-framework</module>
+      <module>mei-xsl-converter</module>
   </modules>
   <build>
     <plugins>
