@@ -12,3 +12,4 @@ tei-converter/target
 tei-javalib/target
 Tests/temp-results
 .idea
+*.iml
