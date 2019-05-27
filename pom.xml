@@ -72,15 +72,16 @@
   <modules>
     <module>ege-api</module>
     <module>tei-javalib</module>
-    <module>tei-converter</module>
+    <!--<module>tei-converter</module>
     <module>ege-xsl-converter</module>
-    <module>oo-converter</module>
+    <module>oo-converter</module>-->
     <module>ege-validator</module>
     <module>ege-webservice</module>
     <module>ege-webclient</module>
     <module>ege-framework</module>
       <module>mei-xsl-converter</module>
       <module>mei-validator</module>
+    <module>mei-customization</module>
   </modules>
   <build>
     <plugins>
