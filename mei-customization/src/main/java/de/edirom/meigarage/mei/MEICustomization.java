@@ -2,8 +2,6 @@ package de.edirom.meigarage.mei;
 
 import net.sf.saxon.s9api.*;
 import org.apache.log4j.Logger;
-import org.apache.tools.ant.Project;
-import org.apache.tools.ant.ProjectHelper;
 import org.tei.utils.SaxonProcFactory;
 import org.tei.utils.XMLUtils;
 import org.w3c.dom.Document;
@@ -13,8 +11,6 @@ import org.xml.sax.SAXParseException;
 import pl.psnc.dl.ege.component.Customization;
 import pl.psnc.dl.ege.configuration.EGEConfigurationManager;
 import pl.psnc.dl.ege.configuration.EGEConstants;
-import pl.psnc.dl.ege.exception.ConverterException;
-import pl.psnc.dl.ege.exception.CustomizationException;
 import pl.psnc.dl.ege.exception.EGEException;
 import pl.psnc.dl.ege.types.CustomizationSetting;
 import pl.psnc.dl.ege.types.CustomizationSourceInputType;
@@ -26,9 +22,7 @@ import javax.xml.transform.stream.StreamSource;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 public class MEICustomization implements Customization, ErrorHandler {
 
@@ -47,10 +41,10 @@ public class MEICustomization implements Customization, ErrorHandler {
         List<CustomizationSourceInputType> customizations = new ArrayList<CustomizationSourceInputType>();
         List<String> outputFormats = new ArrayList<String>();
 
-        sources.add(new CustomizationSourceInputType("mei401", "MEI v4.0.1", CustomizationSourceInputType.TYPE_SERVER_FILE, "sources/mei-source.xml"));
-        sources.add(new CustomizationSourceInputType("mei300", "MEI v3.0.0", CustomizationSourceInputType.TYPE_SERVER_FILE, "sources/mei-source.xml"));
-        sources.add(new CustomizationSourceInputType("mei211", "MEI v2.1.1", CustomizationSourceInputType.TYPE_SERVER_FILE, "sources/mei-source.xml"));
-        sources.add(new CustomizationSourceInputType("mei200", "MEI v2.0.0", CustomizationSourceInputType.TYPE_SERVER_FILE, "sources/mei-source.xml"));
+        sources.add(new CustomizationSourceInputType("mei401", "MEI v4.0.1", CustomizationSourceInputType.TYPE_SERVER_FILE, "source/mei-source_canon.xml"));
+        sources.add(new CustomizationSourceInputType("mei300", "MEI v3.0.0", CustomizationSourceInputType.TYPE_SERVER_FILE, "source/mei-source_canon.xml"));
+        sources.add(new CustomizationSourceInputType("mei211", "MEI v2.1.1", CustomizationSourceInputType.TYPE_SERVER_FILE, "source/mei-source_canon.xml"));
+        sources.add(new CustomizationSourceInputType("mei200", "MEI v2.0.0", CustomizationSourceInputType.TYPE_SERVER_FILE, "source/mei-source_canon.xml"));
         sources.add(new CustomizationSourceInputType("mei-local", "Local Source", CustomizationSourceInputType.TYPE_CLIENT_FILE));
 
         customizations.add(new CustomizationSourceInputType("c-mei-all", "MEI All", CustomizationSourceInputType.TYPE_SERVER_FILE, "customizations/mei-all.xml"));
@@ -70,64 +64,87 @@ public class MEICustomization implements Customization, ErrorHandler {
             .getStandardIOResolver();
 
     public void error(SAXParseException exception) throws SAXException {
-        LOGGER.info("Error: " + exception.getMessage());
+        LOGGER.error("Error: " + exception.getMessage());
     }
 
 
     public void fatalError(SAXParseException exception) throws SAXException {
-        LOGGER.info("Fatal Error: " + exception.getMessage());
+        LOGGER.error("Fatal Error: " + exception.getMessage());
         throw exception;
     }
 
 
     public void warning(SAXParseException exception) throws SAXException {
-        LOGGER.info("Warning: " + exception.getMessage());
+        LOGGER.error("Warning: " + exception.getMessage());
     }
 
-    public void customize(CustomizationSetting customizationSetting, String sourceId, String customizationId, String outputFormat, OutputStream outputStream) throws IOException, EGEException {
-        LOGGER.trace("MEICustomization.customize()");
+    public void customize(CustomizationSetting customizationSetting, CustomizationSourceInputType sourceInputType,
+                          CustomizationSourceInputType customizationInputType, String outputFormat,
+                          OutputStream outputStream, File localSourceFile, File localCustomizationFile) throws EGEException {
 
-        if(outputFormat == "RelaxNG") {
+        File outTempDir = prepareTempDir();
 
-            String sourcePath = MEI_DIR + File.separator + "mei401/source/mei-source.xml";
-            String customizationPath = MEI_DIR + File.separator + "mei401/customizations/mei-all.xml";
+        if(outputFormat.equals("RelaxNG")) {
 
-            performCustomization(sourcePath, customizationPath, outputStream);
+            String sourcePath = "";
+            if(sourceInputType.getType().equals(CustomizationSourceInputType.TYPE_CLIENT_FILE)) {
+
+                sourcePath = localSourceFile.getAbsolutePath();
+            }else
+                sourcePath = MEI_DIR + File.separator + sourceInputType.getId() + File.separator + sourceInputType.getPath();
+
+            String customizationPath = "";
+            if(customizationInputType.getType().equals(CustomizationSourceInputType.TYPE_CLIENT_FILE)) {
+                customizationPath = localCustomizationFile.getAbsolutePath();
+            }else
+                customizationPath = MEI_DIR + File.separator + sourceInputType.getId() + File.separator + customizationInputType.getPath();
+
+
+
+            performCustomization(sourcePath, customizationPath, customizationInputType.getId(), outputStream, outTempDir);
+
         }
+
+        if (outTempDir != null && outTempDir.exists())
+            EGEIOUtils.deleteDirectory(outTempDir);
+
     }
 
     /*
      * Performs transformation with XSLT
      */
-    private void performCustomization(String source, String customization,
-                                           OutputStream outputStream)
-            throws IOException, CustomizationException {
+    private void performCustomization(String sourcePath, String customizationPath,
+                                      String customizationName, OutputStream outputStream, File outTempDir)
+            throws EGEException {
 
 
-        File outTempDir = null;
+        LOGGER.debug("performCustomization(" + sourcePath + ", " + customizationPath + ")");
+
         FileInputStream is = null;
+
+
         try {
-            outTempDir = prepareTempDir();
-            File buildFile = new File(TEI_DIR + "/relaxng/build-to.xml");
+/*            // Prepare Source File
+            LOGGER.debug("prepare source file: " + sourcePath +
+                    " -> " + outTempDir.getAbsolutePath() + File.separator +  "source.xml");
 
-            Project p = new Project();
-            p.setUserProperty("ant.file", buildFile.getAbsolutePath());
-            p.setProperty("inputFile", customization);
-            p.setProperty("outputFile", outTempDir.getAbsolutePath() + "/customization_.rng");
-            p.setProperty("defaultSource", source);
+            File sourceFile = prepareSourceFile(sourcePath, outTempDir);
+*/
+            // Expand ODD
+            LOGGER.debug("expand odd: " + customizationPath + " through " + TEI_DIR + "/odds/odd2odd.xsl" +
+                    " with source " + sourcePath +
+                    " -> " + outTempDir.getAbsolutePath() + File.separator +  "processedodd.xml");
 
-            p.init();
+            File processedOddFile = expandODD(customizationPath, outTempDir, sourcePath);
 
-            ProjectHelper helper = ProjectHelper.getProjectHelper();
-            p.addReference("ant.projectHelper", helper);
+            // Build RelaxNG
+            LOGGER.debug("generate rng: " + processedOddFile.getAbsolutePath() + " through " + TEI_DIR + "/odds/odd2relax.xsl" +
+                    " with source " + sourcePath +
+                    " -> " + outTempDir.getAbsolutePath() + File.separator +  customizationName + ".rng");
 
-            helper.parse(p, buildFile);
+            File relaxNGFile = transformToRelaxNG(processedOddFile, outTempDir, customizationName, sourcePath);
 
-            p.executeTarget(p.getDefaultTarget());
-
-            File relax = new File(outTempDir.getAbsolutePath() + "/customization_.rng");
-            is = new FileInputStream(relax);
-
+            is = new FileInputStream(relaxNGFile);
             byte[] buf = new byte[8192];
             int c = 0;
             while ((c = is.read(buf, 0, buf.length)) > 0) {
@@ -135,7 +152,7 @@ public class MEICustomization implements Customization, ErrorHandler {
             }
 
         }catch (Exception e) {
-            throw new CustomizationException();
+            throw new EGEException(e.getMessage());
         } finally {
             try {
                 is.close();
@@ -148,9 +165,104 @@ public class MEICustomization implements Customization, ErrorHandler {
             } catch (Exception ex) {
                 // do nothing
             }
-            if (outTempDir != null && outTempDir.exists())
-                EGEIOUtils.deleteDirectory(outTempDir);
         }
+    }
+
+/*    private File prepareSourceFile(String sourcePath, File outTempDir) throws SaxonApiException, IOException, SAXException {
+
+        PrintWriter out = new PrintWriter(outTempDir + "resolveXInclude.xsl");
+        out.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<xsl:stylesheet xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"\n" +
+                "    xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\n" +
+                "    exclude-result-prefixes=\"xs\"\n" +
+                "    version=\"2.0\">\n" +
+                "    \n" +
+                "    <xsl:output encoding=\"UTF-8\" indent=\"yes\"/>\n" +
+                "    \n" +
+                "    <xsl:template match=\"/\">\n" +
+                "        <xsl:apply-templates/>\n" +
+                "    </xsl:template>\n" +
+                "    \n" +
+                "    <xsl:template match=\"@*\">\n" +
+                "        <xsl:copy-of select=\".\"/>\n" +
+                "    </xsl:template>\n" +
+                "    \n" +
+                "    <xsl:template match=\"*\">\n" +
+                "        <xsl:copy>\n" +
+                "            <xsl:apply-templates select=\"@* | element()\"/>\n" +
+                "        </xsl:copy>\n" +
+                "    </xsl:template>\n" +
+                "    \n" +
+                "</xsl:stylesheet>");
+        out.flush();
+        out.close();
+
+        Processor proc = SaxonProcFactory.getProcessor();
+        XsltCompiler comp = proc.newXsltCompiler();
+
+        StreamSource xslt = new StreamSource(new FileInputStream(new File(
+                outTempDir + "resolveXInclude.xsl")));
+
+        XsltExecutable exec = comp.compile(xslt);
+        Xslt30Transformer transformer = exec.load30();
+
+        ParseOptions options = new ParseOptions();
+        options.setXIncludeAware(true);
+        XMLReader reader = options.getXMLReader();
+
+        File sourceFile = new File(outTempDir.getAbsolutePath() + File.separator +  "source.xml");
+        Serializer s = transformer.newSerializer(sourceFile);
+        transformer.applyTemplates(new SAXSource(reader, new InputSource(sourcePath)), new XMLStreamWriterDestination(s.getXMLStreamWriter()));
+
+        return sourceFile;
+    }
+ */
+
+    private File transformToRelaxNG(File processedOddFile, File outTempDir, String customizationName, String sourcePath) throws FileNotFoundException, SaxonApiException {
+        Processor proc = SaxonProcFactory.getProcessor();
+        XsltCompiler comp = proc.newXsltCompiler();
+
+        StreamSource xslt = new StreamSource(new FileInputStream(new File(
+                TEI_DIR + "/odds/odd2relax.xsl")));
+        xslt.setSystemId(TEI_DIR + "/odds/odd2relax.xsl");
+        XsltExecutable exec = comp.compile(xslt);
+        XsltTransformer transformer = exec.load();
+
+        transformer.setSource(new StreamSource(processedOddFile));
+
+        File relaxNGFile = new File(outTempDir.getAbsolutePath() + File.separator +  customizationName + ".rng");
+        Serializer relaxNGSerializer = proc.newSerializer(relaxNGFile);
+        transformer.setDestination(relaxNGSerializer);
+
+        transformer.setParameter(new QName("defaultSource"), XdmValue.makeValue(sourcePath));
+        transformer.setParameter(new QName("default-ns"), XdmValue.makeValue("http://www.music-encoding.org/ns/mei"));
+        transformer.setParameter(new QName("prefixes"), XdmValue.makeValue("mei=http://www.music-encoding.org/ns/mei tei=http://www.tei-c.org/ns/1.0 teix=http://www.tei-c.org/ns/Examples rng=http://relaxng.org/ns/structure/1.0"));
+        transformer.transform();
+
+        return relaxNGFile;
+    }
+
+    private File expandODD(String customizationPath, File outTempDir, String sourcePath) throws FileNotFoundException, SaxonApiException {
+        Processor proc = SaxonProcFactory.getProcessor();
+        XsltCompiler comp = proc.newXsltCompiler();
+
+        StreamSource xslt = new StreamSource(new FileInputStream(new File(
+                TEI_DIR + "/odds/odd2odd.xsl")));
+        xslt.setSystemId(TEI_DIR + "/odds/odd2odd.xsl");
+        XsltExecutable exec = comp.compile(xslt);
+        XsltTransformer transformer = exec.load();
+
+        File inputFile = new File(customizationPath);
+        transformer.setSource(new StreamSource(inputFile));
+
+        File processedOddFile = new File(outTempDir.getAbsolutePath() + File.separator +  "processedodd.xml");
+        Serializer processedOddSerializer = proc.newSerializer(processedOddFile);
+        transformer.setDestination(processedOddSerializer);
+
+        transformer.setParameter(new QName("defaultSource"), XdmValue.makeValue(sourcePath));
+        transformer.transform();
+
+        return processedOddFile;
     }
 
     private File prepareTempDir() {
@@ -159,6 +271,7 @@ public class MEICustomization implements Customization, ErrorHandler {
         inTempDir = new File(EGEConstants.TEMP_PATH + File.separator + uid
                 + File.separator);
         inTempDir.mkdir();
+        LOGGER.info("Temp dir created: " + inTempDir.getAbsolutePath());
         return inTempDir;
     }
 
