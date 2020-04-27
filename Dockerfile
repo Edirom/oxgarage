@@ -48,7 +48,7 @@ RUN apt-get update \
     ttf-dejavu \
     fonts-arphic-ukai \
     fonts-arphic-uming \
-    ttf-baekmuk \
+    fonts-baekmuk \
     ttf-junicode \
     fonts-linuxlibertine \
     fonts-ipafont-gothic \
