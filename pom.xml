@@ -83,6 +83,7 @@
     <module>mei-validator</module>
     <module>mei-customization</module>
     <module>lilypond-converter</module>
+      <module>verovio-converter</module>
   </modules>
   <build>
     <plugins>
