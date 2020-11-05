@@ -56,13 +56,10 @@ RUN apt-get update \
     fonts-ipafont-mincho \
     cmake \
     build-essential \
+    libgcc-8-dev \
+    librsvg2-bin \
     && ln -s ${OFFICE_HOME} /usr/lib/openoffice \
     && rm -rf /var/lib/apt/lists/*
-
-RUN echo "deb http://ftp.de.debian.org/debian bullseye main" >> /etc/apt/sources.list \
-    && apt-get update \
-    && apt-get install -y libgcc-8-dev \
-    librsvg2-bin
 
 # installs lilypond into /usr/local/lilypond and /usr/local/bin as shortcut
 ADD https://lilypond.org/download/binaries/linux-64/lilypond-2.20.0-1.linux-64.sh /tmp/lilypond.sh
