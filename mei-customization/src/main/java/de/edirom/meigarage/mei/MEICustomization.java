@@ -84,26 +84,21 @@ public class MEICustomization implements Customization, ErrorHandler {
 
         File outTempDir = prepareTempDir();
 
-        if(outputFormat.equals("RelaxNG")) {
+        String sourcePath = "";
+        if(sourceInputType.getType().equals(CustomizationSourceInputType.TYPE_CLIENT_FILE)) {
 
-            String sourcePath = "";
-            if(sourceInputType.getType().equals(CustomizationSourceInputType.TYPE_CLIENT_FILE)) {
+            sourcePath = localSourceFile.getAbsolutePath();
+        }else
+            sourcePath = MEI_DIR + File.separator + sourceInputType.getId() + File.separator + sourceInputType.getPath();
 
-                sourcePath = localSourceFile.getAbsolutePath();
-            }else
-                sourcePath = MEI_DIR + File.separator + sourceInputType.getId() + File.separator + sourceInputType.getPath();
-
-            String customizationPath = "";
-            if(customizationInputType.getType().equals(CustomizationSourceInputType.TYPE_CLIENT_FILE)) {
-                customizationPath = localCustomizationFile.getAbsolutePath();
-            }else
-                customizationPath = MEI_DIR + File.separator + sourceInputType.getId() + File.separator + customizationInputType.getPath();
+        String customizationPath = "";
+        if(customizationInputType.getType().equals(CustomizationSourceInputType.TYPE_CLIENT_FILE)) {
+            customizationPath = localCustomizationFile.getAbsolutePath();
+        }else
+            customizationPath = MEI_DIR + File.separator + sourceInputType.getId() + File.separator + customizationInputType.getPath();
 
 
-
-            performCustomization(sourcePath, customizationPath, customizationInputType.getId(), outputStream, outTempDir);
-
-        }
+        performCustomization(outputFormat, sourcePath, customizationPath, customizationInputType.getId(), outputStream, outTempDir);
 
         if (outTempDir != null && outTempDir.exists())
             EGEIOUtils.deleteDirectory(outTempDir);
@@ -113,7 +108,7 @@ public class MEICustomization implements Customization, ErrorHandler {
     /*
      * Performs transformation with XSLT
      */
-    private void performCustomization(String sourcePath, String customizationPath,
+    private void performCustomization(String outputFormat, String sourcePath, String customizationPath,
                                       String customizationName, OutputStream outputStream, File outTempDir)
             throws EGEException {
 
@@ -130,21 +125,35 @@ public class MEICustomization implements Customization, ErrorHandler {
 
             File sourceFile = prepareSourceFile(sourcePath, outTempDir);
 */
-            // Expand ODD
-            LOGGER.debug("expand odd: " + customizationPath + " through " + TEI_DIR + "/odds/odd2odd.xsl" +
-                    " with source " + sourcePath +
-                    " -> " + outTempDir.getAbsolutePath() + File.separator +  "processedodd.xml");
 
-            File processedOddFile = expandODD(customizationPath, outTempDir, sourcePath);
+            if(outputFormat.equals("RelaxNG")) {
+                // Expand ODD
+                LOGGER.debug("expand odd: " + customizationPath + " through " + TEI_DIR + "/odds/odd2odd.xsl" +
+                        " with source " + sourcePath +
+                        " -> " + outTempDir.getAbsolutePath() + File.separator +  "processedodd.xml");
 
-            // Build RelaxNG
-            LOGGER.debug("generate rng: " + processedOddFile.getAbsolutePath() + " through " + TEI_DIR + "/odds/odd2relax.xsl" +
-                    " with source " + sourcePath +
-                    " -> " + outTempDir.getAbsolutePath() + File.separator +  customizationName + ".rng");
+                File processedOddFile = expandODD(customizationPath, outTempDir, sourcePath);
 
-            File relaxNGFile = transformToRelaxNG(processedOddFile, outTempDir, customizationName, sourcePath);
+                // Build RelaxNG
+                LOGGER.debug("generate rng: " + processedOddFile.getAbsolutePath() + " through " + TEI_DIR + "/odds/odd2relax.xsl" +
+                        " with source " + sourcePath +
+                        " -> " + outTempDir.getAbsolutePath() + File.separator +  customizationName + ".rng");
 
-            is = new FileInputStream(relaxNGFile);
+                File relaxNGFile = transformToRelaxNG(processedOddFile, outTempDir, customizationName, sourcePath);
+
+                is = new FileInputStream(relaxNGFile);
+
+            }else if(outputFormat.equals("Compiled ODD")) {
+                // Expand ODD
+                LOGGER.debug("expand odd: " + customizationPath + " through " + TEI_DIR + "/odds/odd2odd.xsl" +
+                        " with source " + sourcePath +
+                        " -> " + outTempDir.getAbsolutePath() + File.separator +  customizationName +  ".xml");
+
+                File processedOddFile = expandODD(customizationPath, outTempDir, sourcePath);
+
+                is = new FileInputStream(processedOddFile);
+            }
+
             byte[] buf = new byte[8192];
             int c = 0;
             while ((c = is.read(buf, 0, buf.length)) > 0) {
